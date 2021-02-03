@@ -1,0 +1,90 @@
+import discord
+from discord.ext import commands, tasks
+import youtube_dl
+
+
+#The original command prefix is !. If you want you can change it right here
+client = commands.Bot(command_prefix = !)
+#if you want to change command prefix just change the "!"
+
+
+#Bot joins the voice chat
+@client.command(pass_context=True)
+async def join(ctx):
+    if not ctx.message.author.voice:
+        await ctx.send('Herhangi bir ses kanalına bağlı değilsin')
+        return 
+    else:
+        channel = ctx.message.author.voice.channel
+    await channel.connect()
+
+
+
+#Play command's code
+@client.command()
+async def play(ctx, url : str):
+    voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
+    song_there = os.path.isfile("song.mp3")
+    try:
+        if song_there:
+            os.remove("song.mp3")
+    except PermissionError:
+        await ctx.send('Şu an çalan muziğin bitmesini bekle ya da "Bitir" komudunu kullan.')
+        return
+
+
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    } 
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+    for file in os.listdir("./"):
+        if file.endswith(".mp3"):
+            os.rename(file, "song.mp3")
+    voice.play(discord.FFmpegPCMAudio("song.mp3"))
+
+
+#Disconnect code
+@client.command()
+async def leave(ctx):
+    voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
+    if voice.is_connected():
+        await voice.disconnect()
+    
+#music pause code
+
+@client.command()
+async def pause(ctx):
+    voice = discord.utils.get(client.voice_clients , guild=ctx.guild)
+    if voice.is_playing():
+        voice.pause()
+    else:
+        await ctx.send("Zaten Şu Anda Çalan Herhangi Bir Müzik Yok :(")
+
+#resume the music code
+
+@client.command()
+async def resume(ctx):
+    voice = discord.utils.get(client.voice_clients , guild=ctx.guild)
+    if voice.is_paused():
+        voice.resume()
+    else:
+        await ctx.send("Müzik Durdurulmuş Değil! Durdurmak İçin !pb durdur Kullanabilirsin")    
+
+#Stop command's code
+
+@client.command()
+async def stop(ctx):
+    voice = discord.utils.get(client.voice_clients , guild=ctx.guild)
+    voice.stop()
+
+
+
+
+
+client.run('your token')
